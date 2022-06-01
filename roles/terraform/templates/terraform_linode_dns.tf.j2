@@ -1,0 +1,21 @@
+{% for resource in terraform %}
+{% if resource.resource_type == "dns" and resource.provider == "linode" %}
+data "linode_domain" "domain" {
+  domain = "{{resource.domain_name}}"
+}
+{% endif %}
+{% if resource.resource_type == "dns" and resource.provider == "linode" %}
+{% for hostnames in resource.hostnames %}
+resource "linode_domain_record" "{{resource.resource_name}}_{{hostnames}}" {
+  domain_id = "${% raw %}{{% endraw %}data.linode_domain.domain.id}"
+  record_type   = "{{resource.dns_type}}"
+  name   = "{{hostnames}}"
+{% if resource.vm_provider == 'linode' %}
+  target  = linode_instance.{{resource.value}}.ip_address
+{% else %}
+  target  = {{resource.value}}
+{% endif %}
+}
+{% endfor %}
+{% endif %}
+{% endfor %}

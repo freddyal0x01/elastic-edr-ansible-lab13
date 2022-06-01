@@ -1,0 +1,5 @@
+---
+- include: upgrade.yml
+- include: locale.yml
+- include: zsh.yml
+- include: docker.yml

@@ -1,0 +1,5 @@
+---
+elasticsearch_data: "{{ docker_home_dir }}/elasticsearch/data"
+elasticsearch_plugin: "{{ docker_home_dir }}/elasticsearch/plugin"
+elasticsearch_config: "{{ docker_home_dir }}/elasticsearch/config"
+java_options: "-Xms2g -Xmx2g"

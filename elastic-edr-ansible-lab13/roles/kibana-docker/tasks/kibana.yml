@@ -1,0 +1,49 @@
+---
+- name: Ensures kibana data dir exists
+  file:
+    path: "{{ kibana_data }}"
+    state: directory
+
+- name: read the CA cert
+  shell: "grep {{ elasticsearch_config }}/ssl/elastic-stack-ca.pem -A 200 -e '-----BEGIN CERTIFICATE*' | sed 's/^/          /'"
+  register: cert
+
+- name: Copy kibana config
+  template:
+    src: "kibana.yml.j2"
+    dest: "{{ kibana_data }}/kibana.yml"
+    owner: 1000
+    group: 1000
+    mode: 770
+  notify:
+    - restart docker_kibana
+
+- name: Set sysctl values
+  sysctl:
+    name: vm.max_map_count
+    value: '262144'
+    state: present
+    sysctl_set: yes
+    reload: yes
+
+- name: Kibana
+  docker_container:
+    name: "{{ kibana_hostname }}"
+    image: docker.elastic.co/kibana/kibana:{{ elasticsearch_version }}
+    state: started
+    hostname: "{{ kibana_hostname }}"
+    pull: yes
+    restart_policy: unless-stopped
+    volumes:
+      - "{{ kibana_data }}/kibana.yml:/usr/share/kibana/config/kibana.yml:ro"
+    networks:
+      - name: "{{ dockernet }}"
+    labels:
+      traefik.docker.network: "{{ dockernet }}"
+      traefik.enable: "true"
+      traefik.http.routers.kibana.rule: "Host(`{{ kibana_hostname }}.{{ domain_name }}`)"
+      traefik.http.services.kibana.loadbalancer.server.port: "5601"
+      traefik.http.routers.traefik.tls: "true"
+      traefik.http.routers.traefik.tls.certresolver: "letsencrypt"
+  notify:
+    - restart docker_kibana

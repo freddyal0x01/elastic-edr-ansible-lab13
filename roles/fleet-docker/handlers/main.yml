@@ -1,0 +1,4 @@
+- name: restart docker_fleet
+  docker_container:
+    name: "fleet"
+    restart: yes

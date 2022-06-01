@@ -1,0 +1,33 @@
+#!/bin/bash
+# Exit on Error
+
+OUTPUT_DIR=/ssl
+CA_FILE=$OUTPUT_DIR/elastic-stack-ca.p12
+CA_FILE_PEM=$OUTPUT_DIR/elastic-stack-ca.pem
+CERT_FILE=$OUTPUT_DIR/elastic-certificates.p12
+
+printf "====== Generating Elasticsearch Certifications ======\n"
+printf "=====================================================\n"
+if [ -f "$CA_FILE" ]; then
+        echo "Removing current Certificate Authority (CA)..."
+            rm $CA_FILE
+fi
+if [ -f "$CA_FILE_PEM" ]; then
+        echo "Removing current Certificate Authority (CA)..."
+            rm $CA_FILE_PEM
+fi
+if [ -f "$CERT_FILE" ]; then
+        echo "Removing current Certificate (P12)..."
+            rm $CERT_FILE
+fi
+elasticsearch-certutil ca -s --pass "" --out $CA_FILE
+elasticsearch-certutil cert -s --ca $CA_FILE --ca-pass "" --dns {{ elastic_hostname }}.{{ domain_name }} --ip {{ ansible_host }} --out $CERT_FILE --pass ""
+openssl pkcs12 -in $CA_FILE -out $CA_FILE_PEM -clcerts -nokeys -passin pass:
+chmod 0644 $CA_FILE
+chmod 0644 $CA_FILE_PEM
+chmod 0644 $CERT_FILE
+printf "Certificate Authority created at $CA_FILE\n"
+printf "Certificate created at $CERT_FILE\n"
+printf "=====================================================\n"
+printf "SSL Certifications generation completed successfully.\n"
+printf "=====================================================\n"

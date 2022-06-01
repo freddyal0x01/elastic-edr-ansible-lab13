@@ -1,0 +1,6 @@
+{% for resource in terraform %}
+{% if resource.resource_type == "vm" %}
+[{{resource.provider}}]
+${% raw %}{{% endraw %}{{resource.name}}-label} ansible_host=${% raw %}{{% endraw %}{{resource.name}}-ip}
+{% endif %}
+{% endfor %}

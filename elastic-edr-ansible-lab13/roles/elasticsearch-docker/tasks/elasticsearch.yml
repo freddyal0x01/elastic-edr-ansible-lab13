@@ -1,0 +1,67 @@
+---
+- name: Ensures elasticsearch data dir exists
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: 1000
+    group: 1000
+  with_items: 
+    - "{{ elasticsearch_data }}"
+    - "{{ elasticsearch_config }}"
+
+- name: Copy elasticsearch config
+  template:
+    src: "elasticsearch.yml.j2"
+    dest: "{{ elasticsearch_config }}/elasticsearch.yml"
+    owner: 1000
+    group: 1000
+    mode: 0770
+  notify:
+    - restart docker_elastic
+
+- sysctl:
+    name: vm.max_map_count
+    value: '262144'
+    state: present
+    sysctl_set: yes
+    reload: yes
+  notify:
+    - restart docker_elastic
+
+- name: Elasticsearch
+  docker_container:
+    name: "{{ elastic_hostname }}"
+    image: docker.elastic.co/elasticsearch/elasticsearch:{{ elasticsearch_version }}
+    state: started
+    hostname: "{{ elastic_hostname }}"
+    pull: yes
+    restart_policy: unless-stopped
+    ulimits: "memlock:-1:-1"
+    log_options: 
+        max-size: "100m"
+        max-file: "3"
+    env:
+      ES_JAVA_OPTS: "{{ java_options }}"
+      ES_TMPDIR: "/tmp"
+      ELASTIC_PASSWORD: "{{ elasticsearch_password }}"
+    ports:
+      - "9200:9200"
+    volumes:
+      - "{{ elasticsearch_data }}:/usr/share/elasticsearch/data"
+      - "{{ elasticsearch_config }}/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml"
+      - "{{ elasticsearch_config }}/ssl/elastic-stack-ca.p12:/usr/share/elasticsearch/config/elastic-stack-ca.p12"
+      - "{{ elasticsearch_config }}/ssl/elastic-certificates.p12:/usr/share/elasticsearch/config/elastic-certificates.p12"
+      - "{{ elasticsearch_config }}/keystore/elasticsearch.keystore:/usr/share/elasticsearch/config/elasticsearch.keystore"
+    networks:
+       - name: "{{ dockernet }}"
+    purge_networks: yes
+    labels:
+      traefik.docker.network: "{{ dockernet }}"
+      traefik.enable: "true"
+      traefik.http.routers.elastic.rule: "Host(`{{ elastic_hostname }}.{{ domain_name }}`)"
+      traefik.http.services.elastic.loadbalancer.server.port: "9200"
+      traefik.http.services.elastic.loadbalancer.server.scheme: "https"
+      traefik.http.routers.traefik.tls: "true"
+      traefik.http.routers.traefik.tls.certresolver: "letsencrypt"
+  notify:
+    - restart docker_elastic

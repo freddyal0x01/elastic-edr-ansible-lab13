@@ -1,0 +1,38 @@
+---
+- name: Ensures elasticsearch ssl dir exists
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: 1000
+    group: 1000
+  with_items: 
+    - "{{ elasticsearch_config }}/ssl"
+
+- name: Copy elasticsearch certificate script
+  template:
+    src: "elasticsearch_certificate.sh.j2"
+    dest: "{{ elasticsearch_config }}/elasticsearch_certificate.sh"
+    owner: 1000
+    group: 1000
+    mode: 0770
+  notify:
+    - restart docker_elastic
+
+- name: Elasticsearch Cert
+  docker_container:
+    name: "{{ elastic_docker_hostname }}-cert"
+    image: docker.elastic.co/elasticsearch/elasticsearch:{{ elasticsearch_version }}
+    state: started
+    hostname: "{{ elastic_docker_hostname }}-cert"
+    pull: yes
+    restart_policy: no
+    command: bash /setup/elasticsearch_certificate.sh
+    env:
+      ELASTIC_PASSWORD: "{{ elasticsearch_password }}"
+    volumes:
+      - "{{ elasticsearch_config }}/ssl:/ssl"
+      - "{{ elasticsearch_config }}/elasticsearch_certificate.sh:/setup/elasticsearch_certificate.sh"
+    networks:
+       - name: "{{ dockernet }}"
+  notify:
+    - restart docker_elastic

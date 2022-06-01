@@ -1,0 +1,8 @@
+{% for resource in terraform %}
+{% if resource.provider == 'azure' and resource.resource_type == 'cdn' and loop.last %}
+resource "azurerm_resource_group" "azure_resource_hackerops" {
+  name     = "hackerops"
+  location = "{{resource.location}}"
+}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,2 @@
+[linode]
+elk ansible_host=172.105.158.146

@@ -1,0 +1,80 @@
+linode:
+  hosts:
+    elk:
+      hostname: "elk"
+
+      # Traefik
+      dns_traefik: "linode"
+      traefik_dir: "/opt/docker/traefik"
+      traefik_network: "docker"
+      traefik_hostname: "traefik"
+      traefik_acme_email: "frederickaalcantara@gmail.com"
+      traefik_add_volumes:
+      - "{{ traefik_dir }}/acme:/etc/traefik/acme"
+      - "{{ traefik_dir }}/log:/etc/traefik/log"
+      traefik_ports:
+        - '80:80'
+        - '443:443'
+        - '127.0.0.1:8080:8080'
+      traefik_labels:
+        traefik.http.routers.traefik.tls: "true"
+        traefik.http.routers.traefik.tls.certresolver: "letsencrypt"
+        traefik.frontend.passHostHeader: "true"
+      traefik_env:
+        LINODE_AUTH_TOKEN: '{{ linode_token }}'
+
+      traefik_confkey_api:
+        insecure: true
+        dashboard: true
+
+      traefik_confkey_serversTransport:
+        insecureSkipVerify: true
+
+      traefik_confkey_log: 
+        filePath: "/etc/traefik/log/traefik.log"
+        level: "INFO"
+
+      traefik_confkey_accessLog:
+        filePath: "/etc/traefik/log/access.log"
+        bufferingSize: 100
+
+      traefik_confkey_entryPoints:
+        http:
+          address: ':80'
+          http:
+            redirections:
+              entryPoint:
+                to: 'websecure'
+                scheme: 'https'
+        websecure:
+          address: ':443'
+          http:
+            tls:
+              certResolver: 'letsencrypt'
+        
+      traefik_confkey_certificatesResolvers:
+        letsencrypt:
+          acme:
+            email: "{{ traefik_acme_email }}"
+            storage: "/etc/traefik/acme/acme.json"
+            caServer: "https://acme-v02.api.letsencrypt.org/directory"
+            dnsChallenge:
+              provider: "{{ dns_traefik }}"
+              delayBeforeCheck: 0
+              resolvers: 
+                - "1.1.1.1:53"
+                - "8.8.8.8:53"
+                
+
+      java_options: "-Xms2g -Xmx2g"
+      node_name: "elastic-edr"
+      cluster_name: "elastic-edr"
+      node_master: "true"
+      node_data: "true"
+      node_ingest: "true"
+      master: "true"
+      elasticsearch_user: "elastic"
+      elasticsearch_version: "7.17.0"
+      elastic_hostname: "elastic"
+      kibana_hostname: "kibana"
+      fleet_hostname: "fleet"

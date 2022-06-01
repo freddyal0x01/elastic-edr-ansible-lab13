@@ -1,0 +1,16 @@
+## The inventory file
+resource "local_file" "Inventory" {
+    content = templatefile("inventory.tmpl",
+        {
+            {% for resource in terraform %}
+            {% if resource.resource_type == "vm" %}
+            {% if resource.provider == "linode" and resource.resource_type == "vm"  %}
+            {{resource.name}}-ip = linode_instance.{{resource.name}}.ip_address,
+            {{resource.name}}-label = linode_instance.{{resource.name}}.label,
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+        }
+    )
+    filename = "../inventory/inventory"
+}

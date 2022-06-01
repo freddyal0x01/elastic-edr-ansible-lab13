@@ -1,0 +1,60 @@
+- name: Deploy Terraform
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  vars: 
+    deploy: true
+  roles:
+      - { role: terraform }
+
+- name: Refresh Inventory
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  tasks:
+  - meta: refresh_inventory
+  - name: Wait for system to become reachable again
+    wait_for_connection:
+        delay: 10
+        timeout: 300
+
+- name: Apt Ready
+  gather_facts: yes
+  hosts: warhorse
+  connection: ssh
+  become: True
+  vars: 
+    deploy: true
+  tasks:
+  - name: Apt for sure
+    apt: update_cache=yes
+    register: apt_status
+    until: apt_status is success
+    delay: 10
+    retries: 10
+
+- name: Install Roles
+  gather_facts: yes
+  hosts: all
+  connection: ssh
+  become: True
+  roles:
+    - { role: weareinteractive.users }
+    - { role: docker }
+    - { role: os }
+    - { role: geerlingguy.pip }
+    - { role: geerlingguy.ntp }
+    - { role: geerlingguy.security }
+    - { role: viasite-ansible.zsh, zsh_shared: yes}
+
+- name: Install Containers
+  gather_facts: True
+  hosts: elk
+  connection: ssh
+  become: True
+  roles:
+    - { role: ansible-role-traefik-docker }
+    - { role: elasticsearch-docker }
+    - { role: kibana-docker }
+    - { role: fleet-docker }
+    

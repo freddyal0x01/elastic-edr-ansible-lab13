@@ -1,0 +1,28 @@
+# terraform
+*.tfstate
+*.tfstate.backup
+.terraform
+.backup
+.terraform.lock.hcl
+hashicorp/
+/terraform
+
+# mac hidden files
+.DS_Store
+
+#other
+node_modules/
+bower_components/
+.tmp
+.sass-cache
+builds/**/images/*
+*.ogg
+*.mp3
+*.mp4
+*.io
+TODO.txt
+
+secrets.yml
+complete/inventory/inventory
+complete/terraform/*
+keys/

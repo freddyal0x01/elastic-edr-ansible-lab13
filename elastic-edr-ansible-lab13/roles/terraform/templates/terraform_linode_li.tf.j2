@@ -1,0 +1,77 @@
+{% for resource in terraform|selectattr("resource_type", "equalto", "vm") %}
+{% if resource.provider == "linode" and loop.last %}
+
+resource "linode_sshkey" "foo" {
+  label      = "foo"
+  ssh_key = chomp(file("{{ ansible_ssh_public_key_file }}"))
+}
+{% endif %}
+{% endfor %}
+{% for resource in terraform %}
+{% if resource.resource_type == 'vm' and resource.provider == "linode"%}
+resource "linode_instance" "{{resource.name}}" {
+  image   = "{{resource.img}}"
+  label   = "{{resource.name}}"
+  region  = "{{resource.region}}"
+  type    = "{{resource.type}}"
+  authorized_keys = [linode_sshkey.foo.ssh_key]
+  connection {
+    host = self.ip_address
+    user = "root"
+    type = "ssh"
+    agent = false
+    timeout = "3m"
+    private_key = var.ansible_ssh_key_private
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "export PATH=$PATH:/usr/bin",
+      "sudo apt-get update",
+      "sudo adduser --disabled-password --gecos '' ansible",
+      "sudo mkdir -p /home/ansible/.ssh",
+      "sudo touch /home/ansible/.ssh/authorized_keys",
+      "sudo echo '{{ lookup('file', '{{ ansible_ssh_public_key_file }}') }}' > authorized_keys",
+      "sudo mv authorized_keys /home/ansible/.ssh",
+      "sudo chown -R ansible:ansible /home/ansible/.ssh",
+      "sudo chmod 700 /home/ansible/.ssh",
+      "sudo chmod 600 /home/ansible/.ssh/authorized_keys",
+      "sudo usermod -aG sudo ansible",
+      "sudo echo 'ansible ALL=(ALL) NOPASSWD:ALL' | sudo tee -a /etc/sudoers",
+      "sudo apt-get update"
+    ]
+  }
+}
+{% endif %}
+{% if resource.resource_type == 'vm' and resource.provider == "linode" and resource.firewall is defined %}
+resource "linode_firewall" "{{resource.name}}-firewall" {
+  label           = "{{resource.name}}-firewall"
+
+  linodes         = [linode_instance.{{resource.name}}.id]
+  inbound_policy  = "DROP"
+  outbound_policy = "ACCEPT"
+{% for rules in resource.firewall %}
+{% if rules.type == 'inbound' %}
+  inbound {
+    label     = "{{rules.label}}"
+    protocol  = "{{rules.protocol}}"
+    ports     = "{{rules.ports}}"
+    action    = "{{rules.action}}"
+    ipv4      = [{% for source in rules.ipv4_addresses %}"{{source}}"{% endfor %}]
+    ipv6      = [{% for source in rules.ipv6_addresses %}"{{source}}"{% endfor %}]
+  }
+{% endif %}
+
+{% if rules.type == 'outbound' %}
+  outbound {
+    label     = "{{rules.label}}"
+    protocol  = "{{rules.protocol}}"
+    ports     = "{{rules.ports}}"
+    action    = "{{rules.action}}"
+    ipv4      = [{% for source in rules.ipv4_addresses %}"{{source}}"{% endfor %}]
+    ipv6      = [{% for source in rules.ipv6_addresses %}"{{source}}"{% endfor %}]
+  }
+{% endif %}
+{% endfor %}
+}
+{% endif %}
+{% endfor %}

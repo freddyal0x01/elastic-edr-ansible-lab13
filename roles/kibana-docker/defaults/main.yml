@@ -1,0 +1,2 @@
+kibana_data: "{{ docker_home_dir }}/kibana/config"
+elasticsearch_config: "{{ docker_home_dir }}/elasticsearch/config"

@@ -1,0 +1,3 @@
+---
+fleet_log: "{{ docker_home_dir }}/fleet/log"
+elasticsearch_config: "{{ docker_home_dir }}/elasticsearch/config"

@@ -1,0 +1,51 @@
+---
+- name: Ensures fleet log dir exists
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: 1000
+    group: 1000
+  with_items: 
+    - "{{ fleet_log }}"
+
+- name: Fleet
+  docker_container:
+    name: "fleet"
+    image: docker.elastic.co/beats/elastic-agent-complete:{{ elasticsearch_version }}
+    state: started
+    hostname: "fleet"
+    pull: yes
+    restart_policy: unless-stopped
+    log_options: 
+        max-size: "100m"
+        max-file: "3"
+    env:
+      FLEET_SERVER_ENABLE: "1"
+      FLEET_INSECURE: "1"
+      FLEET_ENROLL: "1"
+      KIBANA_FLEET_SETUP: "1"
+      KIBANA_HOST: "http://kibana:5601"
+      KIBANA_USERNAME: "{{ elasticsearch_user }}"
+      KIBANA_PASSWORD: "{{ elasticsearch_password }}"
+      ELASTICSEARCH_HOST: "https://elastic.freddyal.com:9200"
+      ELASTICSEARCH_USERNAME: "{{ elasticsearch_user }}"
+      ELASTICSEARCH_PASSWORD: "{{ elasticsearch_password }}"
+      ELASTICSEARCH_CA: "/ssl/elastic-stack-ca.pem"
+    volumes:
+      - "{{ elasticsearch_config }}/ssl/elastic-stack-ca.pem:/ssl/elastic-stack-ca.pem"
+    ports:
+      - "8220:8220"
+    networks:
+       - name: "{{ dockernet }}"
+    purge_networks: yes
+    labels:
+      traefik.docker.network: "{{ dockernet }}"
+      traefik.enable: "true"
+      traefik.http.routers.fleet.rule: "Host(`{{ fleet_hostname }}.{{ domain_name }}`)"
+      traefik.http.services.fleet.loadbalancer.server.scheme: "https"
+      traefik.http.services.fleet.loadbalancer.server.port: "8220"
+      traefik.http.routers.traefik.tls: "true"
+      traefik.http.routers.traefik.tls.certresolver: "letsencrypt"
+  notify:
+    - restart docker_fleet
+    

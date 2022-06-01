@@ -1,0 +1,38 @@
+terraform {
+  required_version = ">= 0.12.0"
+  required_providers {
+{% for resource in terraform|selectattr("provider", "equalto", "linode") %}
+{% if loop.last %}
+    linode = {
+      source = "linode/linode"
+    }
+{% endif %}
+{% endfor %}
+    local = ">= 1.2"
+  }
+}
+{% for resource in terraform|selectattr("provider", "equalto", "linode") %}
+{% if loop.last %}
+provider "linode" {
+  token = var.li_token
+}
+{% endif %}
+{% endfor %}
+{% for resource in terraform|selectattr("provider", "equalto", "azure") %}
+{% if loop.last %}
+provider "azurerm" {
+  features {}
+  {% if azure_subId is defined %}
+  subscription_id = "{{ azure_subId }}"
+  {% endif %}
+}
+{% endif %}
+{% endfor %}
+terraform {
+  backend "s3" {
+    skip_credentials_validation = true
+    skip_metadata_api_check     = true
+    skip_requesting_account_id = true
+    skip_get_ec2_platforms = true
+  }
+}

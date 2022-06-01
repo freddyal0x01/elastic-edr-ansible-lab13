@@ -1,0 +1,100 @@
+linode:
+  hosts:
+    localhost:
+      ansible_connection: local
+      linode_state_bucket: "hackerops-tfstate"
+      linode_state_bucket_key: "elastic/terraform.tfstate"
+      linode_state_bucket_region: "us-east-1"
+      linode_state_bucket_endpoint: "https://us-southeast-1.linodeobjects.com"
+      terraform:
+        - resource: 
+          resource_type: "dns"
+          resource_name: "elk"
+          provider: "linode"
+          domain_name: "freddyal.com"
+          vm_provider: "linode"
+          dns_type: "A"
+          value: "elk"
+          hostnames:
+            - "elastic"
+            - "kibana"
+            - "fleet"
+        - resource: 
+          resource_type: "vm"
+          resource_name: "elk"
+          provider: "linode"
+          name: "elk"
+          img: "linode/ubuntu20.04"
+          region: "us-southeast"
+          type: "g6-dedicated-4"
+          firewall:
+          - rule: 
+            label: "allow-https"
+            type: inbound
+            protocol: "TCP"
+            action: "ACCEPT"
+            ports: "22"
+            ipv4_addresses:
+              - "0.0.0.0/0"
+            ipv6_addresses:
+              - "::/0"
+          - rule: 
+            label: "allow-http"
+            type: inbound
+            protocol: "TCP"
+            action: "ACCEPT"
+            ports: "80"
+            ipv4_addresses:
+              - "0.0.0.0/0"
+            ipv6_addresses:
+              - "::/0"
+          - rule: 
+            label: "allow-fleet"
+            type: inbound
+            protocol: "TCP"
+            action: "ACCEPT"
+            ports: "8220"
+            ipv4_addresses:
+              - "0.0.0.0/0"
+            ipv6_addresses:
+              - "::/0"
+          - rule: 
+            label: "allow-elasticsearch"
+            type: inbound
+            protocol: "TCP"
+            action: "ACCEPT"
+            ports: "9200"
+            ipv4_addresses:
+              - "0.0.0.0/0"
+            ipv6_addresses:
+              - "::/0"
+          - rule: 
+            label: "allow-https"
+            type: inbound
+            protocol: "TCP"
+            action: "ACCEPT"
+            ports: "22"
+            ipv4_addresses:
+              - "0.0.0.0/0"
+            ipv6_addresses:
+              - "::/0"
+          - rule: 
+            label: "allow-outbound-udp"
+            type: outbound
+            protocol: "UDP"
+            action: "ACCEPT"
+            ports: "1-65535"
+            ipv4_addresses:
+              - "0.0.0.0/0"
+            ipv6_addresses:
+              - "::/0"
+          - rule: 
+            label: "allow-outbound-tcp"
+            type: outbound
+            protocol: "TCP"
+            action: "ACCEPT"
+            ports: "1-65535"
+            ipv4_addresses:
+              - "0.0.0.0/0"
+            ipv6_addresses:
+              - "::/0"
